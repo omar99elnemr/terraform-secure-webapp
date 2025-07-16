@@ -110,7 +110,7 @@ terraform {
 cp terraform.tfvars.example terraform.tfvars
 
 # Edit terraform.tfvars with your specific values
-nano terraform.tfvars
+vim terraform.tfvars
 ```
 
 **Example terraform.tfvars.example content:**
@@ -137,6 +137,7 @@ private_key_path = "/path/to/your/private/key.pem"
 
 ### Step 5: Initialize and Create Workspace
 ```bash
+cd ..
 terraform init
 terraform workspace new dev
 terraform workspace select dev
