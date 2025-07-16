@@ -4,6 +4,7 @@ This project demonstrates a secure web application architecture deployed on AWS 
 
 ## Architecture Overview
 
+![Architecture](architecture.png)
 ```
 Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Backend Apps (Private Subnets)
 ```
