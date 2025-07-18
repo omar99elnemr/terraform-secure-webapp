@@ -13,4 +13,4 @@ output "public_ips" {
 output "private_ips" {
   description = "Private IPs of the instances"
   value       = aws_instance.main[*].private_ip
-}
+}#

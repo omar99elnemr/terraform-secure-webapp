@@ -12,4 +12,4 @@ resource "aws_instance" "main" {
   tags = merge(var.tags, {
     Name = "${var.tags.Name}-${count.index + 1}"
   })
-}
+}#
