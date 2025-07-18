@@ -107,6 +107,7 @@ terraform {
 
 ### Step 4: Configure Variables
 ```bash
+cd ..
 # Copy the example file and customize it
 cp terraform.tfvars.example terraform.tfvars
 
@@ -138,7 +139,7 @@ private_key_path = "/path/to/your/private/key.pem"
 
 ### Step 5: Initialize and Create Workspace
 ```bash
-cd ..
+
 terraform init
 terraform workspace new dev
 terraform workspace select dev
