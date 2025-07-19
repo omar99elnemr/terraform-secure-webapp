@@ -12,7 +12,7 @@ resource "aws_instance" "proxy" {
   vpc_security_group_ids      = [var.proxy_sg_id]
   associate_public_ip_address = true
 
-  user_data = base64encode(templatefile("${path.module}/../../../scripts/install-nginx.sh", {
+  user_data = base64encode(templatefile("${path.module}/../../scripts/install-nginx.sh", {
     internal_alb_dns = var.internal_alb_dns
   }))
 
@@ -49,7 +49,7 @@ resource "aws_instance" "backend" {
   subnet_id              = var.private_subnet_ids[count.index]
   vpc_security_group_ids = [var.backend_sg_id]
 
-  user_data = base64encode(file("${path.module}/../../../scripts/install-python.sh"))
+  user_data = base64encode(file("${path.module}/../../scripts/install-python.sh"))
 
   tags = {
     Name = "${var.project_name}-backend-${count.index + 1}"
@@ -68,7 +68,7 @@ resource "null_resource" "deploy_app" {
 
   # Copy files to proxy first, then to backend
   provisioner "file" {
-    source      = "${path.module}/../../../backend-app/"
+    source      = "${path.module}/../../backend-app/"
     destination = "/tmp/backend-app/"
 
     connection {
@@ -98,7 +98,7 @@ resource "null_resource" "deploy_app" {
   }
 
   provisioner "file" {
-    source      = "${path.module}/../../../backend-app/"
+    source      = "${path.module}/../../backend-app/"
     destination = "/tmp/backend-app/"
 
     connection {
