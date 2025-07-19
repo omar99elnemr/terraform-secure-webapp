@@ -8,7 +8,6 @@ This project demonstrates a secure web application architecture deployed on AWS 
 ```
 Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Backend Apps (Private Subnets)
 ```
-
 ### Components
 - **VPC**: Custom VPC with public and private subnets across 2 AZs
 - **Public Subnets**: Host Nginx reverse proxy servers
@@ -17,6 +16,50 @@ Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Ba
 - **Application Load Balancers**: Public ALB for external traffic, Internal ALB for backend routing
 - **Security Groups**: Network-level security controls
 - **EC2 Instances**: Proxy and backend servers
+
+
+## 📁 Project Structure
+
+```
+terraform-secure-webapp/
+├── README.md                    # This documentation file
+├── main.tf                      # Main Terraform configuration
+├── variables.tf                 # Variable definitions
+├── outputs.tf                   # Output definitions
+├── terraform.tf                 # Backend and provider configuration
+├── terraform.tfvars.example     # Example variables file
+├── .gitignore                   # Git ignore patterns
+├── architecture.png             # Architecture diagram
+├── all-ips.txt                  # Generated IP addresses file
+├── modules/
+│   ├── vpc/                     # VPC module
+│   │   ├── main.tf              # VPC resources
+│   │   ├── variables.tf         # VPC variables
+│   │   └── outputs.tf           # VPC outputs
+│   ├── security-groups/         # Security groups module
+│   │   ├── main.tf              # Security group resources
+│   │   ├── variables.tf         # Security group variables
+│   │   └── outputs.tf           # Security group outputs
+│   ├── ec2/                     # EC2 instances module
+│   │   ├── main.tf              # EC2 resources
+│   │   ├── variables.tf         # EC2 variables
+│   │   └── outputs.tf           # EC2 outputs
+│   └── load-balancer/           # Load balancer module
+│       ├── main.tf              # ALB resources
+│       ├── variables.tf         # ALB variables
+│       └── outputs.tf           # ALB outputs
+├── backend-app/
+│   ├── app.py                   # Flask backend application
+│   └── requirements.txt         # Python dependencies
+├── backend-setup/               # Terraform backend setup
+│   ├── main.tf                  # S3 and DynamoDB resources
+│   ├── variables.tf             # Backend setup variables
+│   └── outputs.tf               # Backend setup outputs
+└── scripts/
+    ├── install-nginx.sh         # Nginx installation script
+    └── install-python.sh        # Python installation script
+```
+
 
 ## 📋 Prerequisites
 
@@ -115,31 +158,30 @@ cp terraform.tfvars.example terraform.tfvars
 vim terraform.tfvars
 ```
 
-**Example terraform.tfvars.example content:**
+**Example terraform.tfvars content:**
 ```hcl
 # AWS Configuration
-aws_region = "us-east-1"
+aws_region   = "us-east-1"
 project_name = "secure-webapp"
 
 # Network Configuration
 vpc_cidr = "10.0.0.0/16"
 
 # Availability Zones and Subnets
-availability_zones = ["us-east-1a", "us-east-1b"]
-public_subnet_cidrs = ["10.0.1.0/24", "10.0.2.0/24"]
+availability_zones   = ["us-east-1a", "us-east-1b"]
+public_subnet_cidrs  = ["10.0.1.0/24", "10.0.2.0/24"]
 private_subnet_cidrs = ["10.0.3.0/24", "10.0.4.0/24"]
 
 # Instance Configuration
 instance_type = "t3.micro"
 
 # CHANGE THESE TO YOUR VALUES
-key_name = "your-aws-key-pair-name"
-private_key_path = "/path/to/your/private/key.pem"
+key_name         = "my-terraform-key"
+private_key_path = "./my-terraform-key.pem"
 ```
 
 ### Step 5: Initialize and Create Workspace
 ```bash
-
 terraform init
 terraform workspace new dev
 terraform workspace select dev
@@ -155,165 +197,197 @@ terraform apply
 - Get the public load balancer DNS from outputs
 - Access via browser: `http://<public-alb-dns>`
 
-## Project Structure
 
-```
-terraform-secure-webapp/
-├── README.md
-├── main.tf                 # Main Terraform configuration
-├── variables.tf            # Variable definitions
-├── outputs.tf              # Output definitions
-├── terraform.tf            # Backend and provider configuration
-├── terraform.tfvars.example # Example variables file
-├── modules/
-│   ├── vpc/               # VPC module
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── security-groups/   # Security groups module
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   ├── ec2/              # EC2 instances module
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   └── outputs.tf
-│   └── load-balancer/    # Load balancer module
-│       ├── main.tf
-│       ├── variables.tf
-│       └── outputs.tf
-├── backend-app/
-│   ├── app.py            # Flask backend application
-│   └── requirements.txt  # Python dependencies
-├── backend-setup/         # Terraform backend setup
-│   ├── main.tf
-│   ├── variables.tf
-│   └── outputs.tf
-└── scripts/
-    ├── install-nginx.sh   # Nginx installation script
-    └── install-python.sh  # Python installation script
+## 🔍 Deployment Details
+
+### 1. VPC and Networking
+- **Custom VPC**: 10.0.0.0/16 CIDR with DNS resolution enabled
+- **Public Subnets**: 10.0.1.0/24, 10.0.2.0/24 with auto-assign public IPs
+- **Private Subnets**: 10.0.3.0/24, 10.0.4.0/24 with NAT gateway routing
+- **Internet Gateway**: For public subnet internet access
+- **NAT Gateway**: Single NAT gateway in first public subnet
+- **Route Tables**: Separate routing for public and private subnets
+
+### 2. Security Groups
+- **Public ALB SG**: Allows HTTP/HTTPS from internet
+- **Proxy SG**: Allows HTTP/HTTPS from ALB, SSH from anywhere
+- **Internal ALB SG**: Allows HTTP from proxy servers
+- **Backend SG**: Allows Flask port (5000) from Internal ALB, SSH from proxy
+
+### 3. EC2 Instances
+- **Proxy Instances**: 
+  - Amazon Linux 2 in public subnets
+  - Nginx reverse proxy configuration
+  - Auto-configured to forward to internal ALB
+- **Backend Instances**: 
+  - Amazon Linux 2 in private subnets
+  - Python 3 and Flask installation
+  - Application deployed via file provisioner
+
+### 4. Load Balancers
+- **Public ALB**: 
+  - Internet-facing
+  - Routes HTTP traffic to proxy instances
+  - Health checks on root path
+- **Internal ALB**: 
+  - Internal only
+  - Routes traffic from proxy to backend instances
+  - Health checks on /health endpoint
+
+### 5. Application Details
+- **Flask Backend**: 
+  - Runs on port 5000
+  - Multiple endpoints: /, /health, /api/status, /api/test
+  - Returns server information for load balancing verification
+- **Nginx Proxy**: 
+  - Configured as reverse proxy
+  - Health endpoint on /health
+  - Forwards all traffic to internal ALB
+
+## 🧪 Testing the Deployment
+
+### 1. Check Generated Files
+```bash
+# View all IP addresses
+cat all-ips.txt
+
+# Example output:
+# public-ip1 54.123.45.67
+# public-ip2 34.567.89.12
+# private-ip1 10.0.3.100
+# private-ip2 10.0.4.200
+# public-alb-dns secure-webapp-public-alb-123456789.us-east-1.elb.amazonaws.com
 ```
 
-## Key Features
+### 2. Test Public Access
+```bash
+# Test via public ALB
+curl http://<public-alb-dns>
+
+# Expected response includes backend server hostname
+# Multiple requests should show different backend servers
+```
+
+### 3. Verify Load Balancing
+```bash
+# Multiple curl requests to see different backend responses
+for i in {1..5}; do
+  curl -s http://<public-alb-dns> | grep hostname
+  sleep 1
+done
+```
+
+### 4. Health Checks
+```bash
+# Check health endpoints
+curl http://<public-alb-dns>/health
+curl http://<public-alb-dns>/api/status
+curl http://<public-alb-dns>/api/test
+```
+
+### 5. SSH Access
+```bash
+# SSH to proxy server (bastion)
+ssh -i my-terraform-key.pem ec2-user@<proxy-public-ip>
+
+# SSH to backend server via proxy (bastion)
+ssh -i my-terraform-key.pem -J ec2-user@<proxy-public-ip> ec2-user@<backend-private-ip>
+```
+
+## 🧹 Cleanup
+
+To destroy the infrastructure:
+```bash
+# Destroy main infrastructure
+terraform destroy
+
+# Destroy backend setup (if desired)
+cd backend-setup
+terraform destroy
+```
+**⚠️ Warning**: This will permanently delete all resources including the S3 bucket with state files.
+
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Key Pair Not Found**
+   ```bash
+   # Ensure key pair exists in correct region
+   aws ec2 describe-key-pairs --key-names my-terraform-key
+   ```
+
+2. **Permission Denied**
+   ```bash
+   # Check key file permissions
+   chmod 400 my-terraform-key.pem
+   ```
+
+3. **Health Check Failures**
+   ```bash
+   # Check if application is running on backend
+   ssh -i key.pem -J ec2-user@proxy-ip ec2-user@backend-ip
+   ps aux | grep python
+   ```
+
+4. **State Lock Issues**
+   ```bash
+   # Force unlock if needed (use with caution)
+   terraform force-unlock <lock-id>
+   ```
+
+## 🔧 Key Features
 
 ### Infrastructure as Code
 - **Modular Design**: Custom Terraform modules for reusability
-- **Remote State**: S3 backend with state locking
+- **Remote State**: S3 backend with state locking using DynamoDB
 - **Workspaces**: Separate environments (dev, staging, prod)
+- **Data Sources**: Uses AWS AMI data source for latest Amazon Linux 2
 
 ### Security
 - **Network Isolation**: Private subnets for backend servers
 - **Security Groups**: Least privilege access controls
 - **NAT Gateway**: Secure internet access for private instances
+- **Bastion Host Pattern**: SSH access via proxy servers
 
 ### High Availability
 - **Multi-AZ Deployment**: Resources across multiple availability zones
 - **Load Balancing**: Application Load Balancers for traffic distribution
+- **Health Checks**: Automated health monitoring for all components
 - **Auto Scaling Ready**: Infrastructure prepared for auto scaling groups
 
 ### Automation
-- **Provisioners**: Automated software installation and configuration
-- **File Deployment**: Automated application deployment to backend servers
-- **IP Logging**: Automatic generation of IP address inventory
+- **Provisioners**: 
+  - Remote provisioners for software installation
+  - File provisioners for application deployment
+  - Local-exec for IP address logging
+- **User Data**: Automated software installation via cloud-init
+- **Template Files**: Dynamic configuration generation
 
-## Deployment Details
+## 💰 Cost Optimization
 
-### 1. VPC and Networking
-- Custom VPC with DNS resolution enabled
-- Public subnets with auto-assign public IPs
-- Private subnets with NAT gateway routing
-- Internet Gateway for public access
-
-### 2. Security Groups
-- **Proxy SG**: Allows HTTP/HTTPS from internet, SSH access
-- **Backend SG**: Allows Flask app port (5000) from proxy SG only
-- **ALB SGs**: Appropriate ingress rules for load balancers
-
-### 3. EC2 Instances
-- **Proxy Instances**: Nginx reverse proxy in public subnets
-- **Backend Instances**: Flask application in private subnets
-- **User Data**: Automated software installation via scripts
-
-### 4. Load Balancers
-- **Public ALB**: Internet-facing, routes to proxy instances
-- **Internal ALB**: Internal, routes from proxy to backend instances
-- **Health Checks**: Automated health monitoring
-
-## Testing the Deployment
-
-1. **Check IP addresses**
-   ```bash
-   cat all-ips.txt
-   ```
-
-2. **Test public access**
-   ```bash
-   curl http://<public-alb-dns>
-   ```
-
-3. **Verify backend response**
-   - The response should include backend server hostname
-   - Multiple requests should show different backend servers (load balancing)
-
-## Monitoring and Logs
-
-- **CloudWatch**: Automatic monitoring for all AWS resources
-- **ALB Access Logs**: Can be enabled in load balancer configuration
-- **Application Logs**: Available on EC2 instances
-
-## Cost Optimization
-
-- **Instance Types**: Uses t3.micro for cost-effectiveness
+- **Instance Types**: Uses t3.micro for cost-effectiveness (Free Tier eligible)
 - **Single NAT Gateway**: Shared across AZs (can be scaled for HA)
+- **No Reserved Instances**: Pay-as-you-go model
 - **Termination Protection**: Disabled for easy cleanup
 
-## Cleanup
+## 🔒 Security Considerations
 
-To destroy the infrastructure:
-```bash
-terraform destroy
-```
+### Network Security
+1. **Private Subnets**: Backend servers have no direct internet access
+2. **Security Groups**: Implement least privilege principle
+3. **NACLs**: Additional network-level security (can be added)
 
-## Security Considerations
+### Access Control
+1. **SSH Access**: Only through bastion host pattern
+2. **Application Access**: Only through load balancers
+3. **IAM Roles**: Can be added for EC2 instance permissions
 
-1. **Network Security**: Private subnets isolate backend servers
-2. **Access Control**: Security groups implement least privilege
-3. **SSH Access**: Bastion host pattern for private instance access
-4. **Secrets Management**: Use AWS Secrets Manager for sensitive data
+### Data Protection
+1. **Encryption**: S3 state bucket encrypted
+2. **Secrets Management**: Use AWS Secrets Manager for sensitive data
+3. **SSL/TLS**: Can be configured for HTTPS termination
 
-## Troubleshooting
 
-### Common Issues
-
-1. **Key Pair**: Ensure your AWS key pair exists in the specified region
-2. **Permissions**: Verify AWS credentials have necessary permissions
-3. **State Lock**: If state is locked, check DynamoDB for lock entries
-4. **Health Checks**: Ensure health check endpoints are accessible
-
-### Debug Commands
-
-```bash
-# Check Terraform state
-terraform state list
-
-# View specific resource
-terraform state show aws_instance.proxy
-
-# Check workspace
-terraform workspace show
-
-# Validate configuration
-terraform validate
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Happy Deploying! 🚀**
