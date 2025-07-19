@@ -1,47 +1,61 @@
 # modules/ec2/variables.tf
 
-variable "instance_count" {
-  description = "Number of instances to create"
-  type        = number
-  default     = 2
-}
-
-variable "instance_type" {
-  description = "EC2 instance type"
+variable "project_name" {
+  description = "Name of the project"
   type        = string
-  default     = "t3.micro"
 }
 
 variable "ami_id" {
-  description = "AMI ID for instances"
+  description = "AMI ID for EC2 instances"
   type        = string
 }
 
-variable "subnet_ids" {
-  description = "List of subnet IDs"
-  type        = list(string)
-}
-
-variable "security_group_id" {
-  description = "Security group ID"
+variable "instance_type" {
+  description = "Instance type for EC2 instances"
   type        = string
 }
 
 variable "key_name" {
-  description = "Name of the AWS key pair"
+  description = "AWS Key Pair name"
   type        = string
 }
 
-variable "user_data" {
-  description = "User data script"
+variable "private_key_path" {
+  description = "Path to private key file"
   type        = string
-  default     = ""
 }
 
-variable "tags" {
-  description = "Tags to apply to instances"
-  type        = map(string)
-  default     = {}
+variable "public_subnet_ids" {
+  description = "IDs of public subnets"
+  type        = list(string)
 }
 
-#
+variable "private_subnet_ids" {
+  description = "IDs of private subnets"
+  type        = list(string)
+}
+
+variable "proxy_sg_id" {
+  description = "Security group ID for proxy servers"
+  type        = string
+}
+
+variable "backend_sg_id" {
+  description = "Security group ID for backend servers"
+  type        = string
+}
+
+variable "public_target_group_arn" {
+  description = "ARN of the public target group"
+  type        = string
+}
+
+variable "internal_target_group_arn" {
+  description = "ARN of the internal target group"
+  type        = string
+}
+
+variable "internal_alb_dns" {
+  description = "DNS name of the internal ALB"
+  type        = string
+}

@@ -1,40 +1,31 @@
 # modules/load-balancer/variables.tf
 
-variable "name" {
-  description = "Name of the load balancer"
-  type        = string
-}
-
-variable "is_internal" {
-  description = "Whether the load balancer is internal"
-  type        = bool
-  default     = false
-}
-
-variable "subnet_ids" {
-  description = "List of subnet IDs"
-  type        = list(string)
-}
-
-variable "security_group_id" {
-  description = "Security group ID"
+variable "project_name" {
+  description = "Name of the project"
   type        = string
 }
 
 variable "vpc_id" {
-  description = "VPC ID"
+  description = "ID of the VPC"
   type        = string
 }
 
-variable "target_instances" {
-  description = "List of target instance IDs"
+variable "public_subnet_ids" {
+  description = "IDs of the public subnets"
   type        = list(string)
 }
 
-variable "health_check_path" {
-  description = "Health check path"
-  type        = string
-  default     = "/health"
+variable "private_subnet_ids" {
+  description = "IDs of the private subnets"
+  type        = list(string)
 }
 
-#Github Repo test
+variable "public_alb_sg_id" {
+  description = "ID of the public ALB security group"
+  type        = string
+}
+
+variable "internal_alb_sg_id" {
+  description = "ID of the internal ALB security group"
+  type        = string
+}

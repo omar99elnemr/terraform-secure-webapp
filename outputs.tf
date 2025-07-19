@@ -1,3 +1,5 @@
+# outputs.tf - Output definitions
+
 output "vpc_id" {
   description = "ID of the VPC"
   value       = module.vpc.vpc_id
@@ -14,21 +16,36 @@ output "private_subnet_ids" {
 }
 
 output "proxy_public_ips" {
-  description = "Public IPs of proxy instances"
-  value       = module.proxy_instances.public_ips
+  description = "Public IP addresses of proxy servers"
+  value       = module.ec2.proxy_public_ips
 }
 
 output "backend_private_ips" {
-  description = "Private IPs of backend instances"
-  value       = module.backend_instances.private_ips
+  description = "Private IP addresses of backend servers"
+  value       = module.ec2.backend_private_ips
 }
 
-output "public_load_balancer_dns" {
-  description = "DNS name of the public load balancer"
-  value       = module.public_alb.dns_name
+output "public_alb_dns" {
+  description = "DNS name of the public Application Load Balancer"
+  value       = module.load_balancer.public_alb_dns
 }
 
-output "internal_load_balancer_dns" {
-  description = "DNS name of the internal load balancer"
-  value       = module.internal_alb.dns_name
+output "internal_alb_dns" {
+  description = "DNS name of the internal Application Load Balancer"
+  value       = module.load_balancer.internal_alb_dns
+}
+
+output "public_alb_zone_id" {
+  description = "Zone ID of the public Application Load Balancer"
+  value       = module.load_balancer.public_alb_zone_id
+}
+
+output "nat_gateway_ip" {
+  description = "Elastic IP address of NAT Gateway"
+  value       = module.vpc.nat_gateway_ip
+}
+
+output "application_url" {
+  description = "URL to access the application"
+  value       = "http://${module.load_balancer.public_alb_dns}"
 }

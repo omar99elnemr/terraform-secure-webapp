@@ -1,5 +1,7 @@
+# variables.tf - Variable definitions
+
 variable "aws_region" {
-  description = "AWS region"
+  description = "AWS region for resources"
   type        = string
   default     = "us-east-1"
 }
@@ -41,11 +43,11 @@ variable "instance_type" {
 }
 
 variable "key_name" {
-  description = "Name of the AWS key pair"
+  description = "AWS Key Pair name for EC2 instances"
   type        = string
 }
 
 variable "private_key_path" {
-  description = "Path to the private key file"
+  description = "Path to private key file for SSH access"
   type        = string
 }

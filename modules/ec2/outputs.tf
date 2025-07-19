@@ -1,16 +1,26 @@
 # modules/ec2/outputs.tf
 
-output "instance_ids" {
-  description = "IDs of the created instances"
-  value       = aws_instance.main[*].id
+output "proxy_instance_ids" {
+  description = "IDs of proxy instances"
+  value       = aws_instance.proxy[*].id
 }
 
-output "public_ips" {
-  description = "Public IPs of the instances"
-  value       = aws_instance.main[*].public_ip
+output "backend_instance_ids" {
+  description = "IDs of backend instances"
+  value       = aws_instance.backend[*].id
 }
 
-output "private_ips" {
-  description = "Private IPs of the instances"
-  value       = aws_instance.main[*].private_ip
-}#
+output "proxy_public_ips" {
+  description = "Public IP addresses of proxy instances"
+  value       = aws_instance.proxy[*].public_ip
+}
+
+output "proxy_private_ips" {
+  description = "Private IP addresses of proxy instances"
+  value       = aws_instance.proxy[*].private_ip
+}
+
+output "backend_private_ips" {
+  description = "Private IP addresses of backend instances"
+  value       = aws_instance.backend[*].private_ip
+}

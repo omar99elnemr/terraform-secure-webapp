@@ -1,49 +1,24 @@
 #!/bin/bash
-# scripts/install-python.sh
+# scripts/install-python.sh - Install Python and Flask dependencies
 
-# Update system
+# Update system packages
 yum update -y
 
 # Install Python 3 and pip
 yum install -y python3 python3-pip
 
-# Install Flask
-pip3 install flask
+# Install additional packages that might be needed
+yum install -y git wget curl
 
-# Create a simple health check script
-cat > /tmp/health_check.py << 'EOF'
-from flask import Flask
-app = Flask(__name__)
+# Upgrade pip
+pip3 install --upgrade pip
 
-@app.route('/health')
-def health():
-    return "OK", 200
+# Create directory for application
+mkdir -p /opt/backend-app
+chown ec2-user:ec2-user /opt/backend-app
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
-EOF
+# Create completion marker
+touch /tmp/python-setup-complete
 
-# Make it executable
-chmod +x /tmp/health_check.py
-
-# Create systemd service for the health check
-cat > /etc/systemd/system/health-check.service << 'EOF'
-[Unit]
-Description=Health Check Service
-After=network.target
-
-[Service]
-Type=simple
-User=ec2-user
-WorkingDirectory=/home/ec2-user
-ExecStart=/usr/bin/python3 /tmp/health_check.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# Enable and start the health check service
-systemctl daemon-reload
-systemctl enable health-check.service
-systemctl start health-check.service
+# Log completion
+echo "Python setup completed at $(date)" >> /var/log/python-setup.log

@@ -1,93 +1,99 @@
 #!/bin/bash
-# scripts/install-nginx.sh
+# scripts/install-nginx.sh - Install and configure Nginx as reverse proxy
 
-# Update system
+# Update system packages
 yum update -y
 
-# Install nginx
-yum install -y nginx
+# Install Nginx
+amazon-linux-extras install nginx1 -y
 
-# Start and enable nginx
+# Create Nginx configuration for reverse proxy
+cat > /etc/nginx/nginx.conf << 'EOF'
+user nginx;
+worker_processes auto;
+error_log /var/log/nginx/error.log;
+pid /run/nginx.pid;
+
+include /usr/share/nginx/modules/*.conf;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile            on;
+    tcp_nopush          on;
+    tcp_nodelay         on;
+    keepalive_timeout   65;
+    types_hash_max_size 4096;
+
+    include             /etc/nginx/mime.types;
+    default_type        application/octet-stream;
+
+    # Upstream backend servers (Internal ALB)
+    upstream backend {
+        server ${internal_alb_dns}:80;
+    }
+
+    server {
+        listen       80 default_server;
+        listen       [::]:80 default_server;
+        server_name  _;
+
+        # Health check endpoint
+        location /health {
+            access_log off;
+            return 200 "healthy\n";
+            add_header Content-Type text/plain;
+        }
+
+        # Proxy all other requests to backend
+        location / {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Health check and connection settings
+            proxy_connect_timeout 5s;
+            proxy_send_timeout 60s;
+            proxy_read_timeout 60s;
+            
+            # Buffer settings
+            proxy_buffering on;
+            proxy_buffer_size 128k;
+            proxy_buffers 4 256k;
+            proxy_busy_buffers_size 256k;
+        }
+
+        error_page   404              /404.html;
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   /usr/share/nginx/html;
+        }
+    }
+}
+EOF
+
+# Start and enable Nginx
 systemctl start nginx
 systemctl enable nginx
 
-# Create a basic nginx configuration
-cat > /etc/nginx/conf.d/default.conf << 'EOF'
-upstream backend {
-    # This will be replaced by the internal ALB DNS
-    server internal-alb-dns-placeholder;
-}
+# Create a health check file
+echo "nginx-proxy-ready" > /var/www/html/health
 
-server {
-    listen 80;
-    server_name _;
-
-    # Main application route
-    location / {
-        proxy_pass http://backend;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        
-        # Timeout settings
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 30s;
-        proxy_read_timeout 30s;
-        
-        # Buffer settings
-        proxy_buffering on;
-        proxy_buffer_size 4k;
-        proxy_buffers 8 4k;
-    }
-
-    # Health check endpoint for ALB
-    location /health {
-        return 200 "Proxy OK";
-        add_header Content-Type text/plain;
-    }
-
-    # Nginx status for monitoring
-    location /nginx_status {
-        stub_status on;
-        access_log off;
-        allow 10.0.0.0/16;
-        deny all;
-    }
-}
-EOF
-
-# Remove default nginx config
-rm -f /etc/nginx/conf.d/default.conf.backup
-
-# Test nginx configuration
+# Test Nginx configuration
 nginx -t
 
-# Restart nginx to apply changes
-systemctl restart nginx
+# Create completion marker
+touch /tmp/nginx-setup-complete
 
-# Create a simple script to update backend upstream
-cat > /home/ec2-user/update-backend.sh << 'EOF'
-#!/bin/bash
-# This script updates the backend upstream in nginx config
-# Usage: ./update-backend.sh <internal-alb-dns>
-
-if [ -z "$1" ]; then
-    echo "Usage: $0 <internal-alb-dns>"
-    exit 1
-fi
-
-INTERNAL_ALB_DNS="$1"
-NGINX_CONFIG="/etc/nginx/conf.d/default.conf"
-
-# Replace placeholder with actual internal ALB DNS
-sudo sed -i "s/internal-alb-dns-placeholder/$INTERNAL_ALB_DNS/g" $NGINX_CONFIG
-
-# Test and reload nginx
-sudo nginx -t && sudo systemctl reload nginx
-
-echo "Backend updated to: $INTERNAL_ALB_DNS"
-EOF
-
-chmod +x /home/ec2-user/update-backend.sh
-chown ec2-user:ec2-user /home/ec2-user/update-backend.sh
+# Log completion
+echo "Nginx reverse proxy setup completed at $(date)" >> /var/log/nginx-setup.log
