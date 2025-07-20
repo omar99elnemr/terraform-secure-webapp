@@ -34,7 +34,7 @@ Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Ba
      aws ec2 create-key-pair --key-name my-terraform-key --query 'KeyMaterial' --output text > my-terraform-key.pem
      chmod 400 my-terraform-key.pem
      # Move the key to the project root if not already there
-     mv my-terraform-key.pem /path/to/terraform-secure-webapp/
+     # mv my-terraform-key.pem /path/to/terraform-secure-webapp/
      ```
 4. **Prepare Backend for State**
    ```bash
