@@ -24,38 +24,52 @@ Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Ba
    git clone https://github.com/omar99elnemr/terraform-secure-webapp.git
    cd terraform-secure-webapp
    ```
-2. **Configure AWS CLI & Terraform**
+2. **Install & Configure AWS CLI and Terraform**
    - Install [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) & [Terraform](https://developer.hashicorp.com/terraform/downloads)
    - Run `aws configure` and set up your credentials
-3. **Prepare Backend for State**
+3. **Create an EC2 Key Pair**
+   - This is required for SSH access and for Terraform to provision instances.
+   - You can create it via AWS Console or CLI:
+     ```bash
+     aws ec2 create-key-pair --key-name my-terraform-key --query 'KeyMaterial' --output text > my-terraform-key.pem
+     chmod 400 my-terraform-key.pem
+     # Move the key to the project root if not already there
+     mv my-terraform-key.pem /path/to/terraform-secure-webapp/
+     ```
+   - Update `terraform.tfvars` with:
+     ```hcl
+     key_name         = "my-terraform-key"
+     private_key_path = "./my-terraform-key.pem"
+     ```
+4. **Prepare Backend for State**
    ```bash
    cd backend-setup
    terraform init && terraform apply
    # Copy S3 bucket and DynamoDB table outputs to ../terraform.tf
    ```
-4. **Set Variables**
+5. **Set Variables**
    ```bash
    cd ..
    cp terraform.tfvars.example terraform.tfvars
    # Edit terraform.tfvars with your key_name and private_key_path
    ```
-5. **Deploy Infrastructure**
+6. **Deploy Infrastructure**
    ```bash
    terraform init
    terraform workspace new dev
    terraform apply
    ```
-6. **Access the App**
+7. **Access the App**
    - Get the public ALB DNS from Terraform outputs
    - Open in your browser: `http://<public-alb-dns>`
 
 ## 📸 Verification
 
-Below are screenshots showing the deployed backend and load balancer in action:
+Below are screenshots showing the same homepage refreshed to demonstrate load balancing (note the different instance IPs/hostnames):
 
-| App Homepage Example | Load Balancer Verification |
-|---------------------|---------------------------|
-| ![Homepage](imgs/verification01.png) | ![LB Test](imgs/verification02.png) |
+| App Homepage (Instance 1) | App Homepage (Instance 2) |
+|--------------------------|---------------------------|
+| ![Homepage1](imgs/verification01.png) | ![Homepage2](imgs/verification02.png) |
 
 ## 📝 Project Structure
 
