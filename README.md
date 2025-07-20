@@ -36,23 +36,31 @@ Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Ba
      # Move the key to the project root if not already there
      mv my-terraform-key.pem /path/to/terraform-secure-webapp/
      ```
-   - Update `terraform.tfvars` with:
-     ```hcl
-     key_name         = "my-terraform-key"
-     private_key_path = "./my-terraform-key.pem"
-     ```
 4. **Prepare Backend for State**
    ```bash
    cd backend-setup
    terraform init && terraform apply
    # Copy S3 bucket and DynamoDB table outputs to ../terraform.tf
    ```
+   - Update `tterraform.tf` with:
+   ```hcl
+   backend "s3" {
+    bucket         = "ENTER YOUR GENERATED BUCKET NAME"
+    .
+    .
+    .
+    ```
 5. **Set Variables**
    ```bash
    cd ..
    cp terraform.tfvars.example terraform.tfvars
    # Edit terraform.tfvars with your key_name and private_key_path
    ```
+   - Update `terraform.tfvars` with:
+     ```hcl
+     key_name         = "my-terraform-key"
+     private_key_path = "./my-terraform-key.pem"
+     ```
 6. **Deploy Infrastructure**
    ```bash
    terraform init
@@ -67,7 +75,7 @@ Internet → Public ALB → Nginx Proxy (Public Subnets) → Internal ALB → Ba
 
 Below are screenshots showing the same homepage refreshed to demonstrate load balancing (note the different instance IPs/hostnames):
 
-| App Homepage (Instance 1) | App Homepage (Instance 2) |
+| Instance 1 | Instance 2 |
 |--------------------------|---------------------------|
 | ![Homepage1](imgs/verification01.png) | ![Homepage2](imgs/verification02.png) |
 
