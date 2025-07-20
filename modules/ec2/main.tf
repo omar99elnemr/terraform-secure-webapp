@@ -67,6 +67,19 @@ resource "null_resource" "deploy_app" {
   ]
 
   # Copy files to proxy first, then to backend
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p /tmp/backend-app"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file(var.private_key_path)
+      host        = aws_instance.proxy[0].public_ip
+    }
+  }
+
   provisioner "file" {
     source      = "${path.module}/../../backend-app/"
     destination = "/tmp/backend-app/"
@@ -84,6 +97,22 @@ resource "null_resource" "deploy_app" {
     inline = [
       "while [ ! -f /tmp/python-setup-complete ]; do sleep 5; done",
       "echo 'Python setup completed on backend server'",
+    ]
+
+    connection {
+      type                = "ssh"
+      user                = "ec2-user"
+      private_key         = file(var.private_key_path)
+      host                = aws_instance.backend[count.index].private_ip
+      bastion_host        = aws_instance.proxy[0].public_ip
+      bastion_user        = "ec2-user"
+      bastion_private_key = file(var.private_key_path)
+    }
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "mkdir -p /tmp/backend-app"
     ]
 
     connection {
@@ -117,6 +146,7 @@ resource "null_resource" "deploy_app" {
     inline = [
       "cd /tmp/backend-app",
       "sudo pip3 install -r requirements.txt",
+      "pkill -f 'python3 app.py' || true",
       "nohup python3 app.py > /tmp/flask-app.log 2>&1 &",
       "sleep 5",
       "echo 'Flask app started'"

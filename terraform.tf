@@ -16,7 +16,7 @@ terraform {
   
   # Backend configuration - Update these values after running backend-setup
   backend "s3" {
-    bucket         = "secure-webapp-terraform-state-REPLACE_WITH_RANDOM_SUFFIX"
+    bucket         = "secure-webapp-terraform-state-a81990bd8fc651b2"
     key            = "dev/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
